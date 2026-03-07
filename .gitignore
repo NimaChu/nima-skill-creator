@@ -1,5 +1,8 @@
 # .gitignore for Nima Skill Creator
 
+# macOS
+.DS_Store
+
 # Python
 __pycache__/
 *.py[cod]
@@ -22,7 +25,6 @@ ENV/
 *~
 
 # OS
-.DS_Store
 Thumbs.db
 
 # Package files
@@ -52,3 +54,4 @@ tmp/
 
 # Node modules (if any)
 node_modules/
+

@@ -74,7 +74,7 @@ description: <1024 chars>     # Trigger scenarios + functionality
 - ✅ `processing-pdfs`, `analyzing-spreadsheets`
 - ❌ `helper`, `utils`, `tools`
 
-## Here are 3 exampleSkill usage scenarios:
+## Here are 3 example Skill usage scenarios:
 
 ### Scenario 1: PDF Processing Skill
 **Trigger**: "Help me extract text and tables from PDFs"
@@ -139,3 +139,15 @@ See `references/` for detailed technical guides:
 - `best-practices.md` - Naming, patterns, quality checklist
 - `workflows.md` - Multi-step process templates
 - `output-patterns.md` - Output format templates
+- `interaction-guide.md` - Interactive design patterns (Chinese)
+
+## For Agents
+
+When this skill is triggered, the AI should:
+
+1. Present the interactive discovery questions (Chinese) - see `references/interaction-guide.md`
+2. Generate the technical blueprint (English)
+3. Execute initialization scripts from `scripts/`
+4. Guide implementation with referenced best practices
+5. Validate with `scripts/validate_skill.py`
+6. Package with `scripts/package_skill.py`

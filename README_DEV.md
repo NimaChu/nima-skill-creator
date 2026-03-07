@@ -26,6 +26,7 @@
 nima-skill-creator/
 ├── SKILL.md              # 主 Skill 定义 (混合中文+英文)
 ├── PROJECT.md            # 项目概述
+├── README.md             # 基本概述
 ├── README_USER.md        # 用户指南
 ├── README_DEV.md         # 本文档 - 技术开发者指南
 ├── scripts/              # 工具脚本
@@ -251,3 +252,4 @@ MIT License - See LICENSE file for details
 - [Local qiuzhi-skill-creator](~/.openclaw/workspace/subagents_workspace/develop/skills/qiuzhi-skill-creator/SKILL.md)
 - [PROJECT.md](PROJECT.md) - Project overview
 - [README_USER.md](README_USER.md) - User guide
+- [SKILL.md](SKILL.md) - Main skill definition
