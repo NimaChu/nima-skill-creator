@@ -1,0 +1,9 @@
+{
+  "name": "nima-skill-creator",
+  "version": "1.0.0",
+  "author": "Nima AI",
+  "license": "MIT",
+  "description": "Hybrid skill creation framework with interactive Chinese-guided workflows and English technical documentation",
+  "requires": [],
+  "keywords": ["skill", "creator", "documentation", "workflow", "boilerplate"]
+}
