@@ -1,3 +1,4 @@
 interface:
   display_name: "Nima Skill Creator"
-  short_description: "Create and improve skill workflows"
+  short_description: "Create and improve portable Agent Skills"
+  default_prompt: "Create or review a portable Agent Skill and validate its cross-agent compatibility."
