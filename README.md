@@ -1,167 +1,148 @@
 # Nima Skill Creator
 
-**面向主流 AI 编程工具与 Agent 产品的可移植 Skill 工程框架。**
+**把一项工作交给 Agent 描述清楚，它会帮你把这项工作做成可复用的 Skill。**
 
-Nima Skill Creator 用一套可审计的流程，把重复工作转成符合 [Agent Skills 开放规范](https://agentskills.io/specification) 的技能包，并提供初始化、验证、打包和安装工具。
+适用于 Codex、Claude Code、OpenCode、OpenClaw、WorkBuddy / CodeBuddy，以及其他支持 Agent Skills 的 AI 编程工具。
 
-它不把 Skill 锁定在某个模型或客户端：`SKILL.md`、`scripts/`、`references/`、`assets/` 构成通用核心，`agents/openai.yaml` 等产品配置只是可选适配层。
+普通用户不需要理解目录结构，也不需要手动运行 Python 命令。把本仓库链接发给具备文件或终端操作能力的 Agent，让它完成安装、创建、验证和使用即可。
 
-## 核心能力
+## 它能帮你做什么
 
-- **需求显化**：从真实请求、输入输出和失败案例反推 Skill 结构
-- **模式化设计**：支持 tool-wrapper、generator、reviewer、inversion、pipeline
-- **开放规范优先**：验证 `name`、`description`、`license`、`compatibility`、`metadata`、`allowed-tools`
-- **跨产品安装**：Codex、Claude Code、OpenCode、OpenClaw、WorkBuddy/CodeBuddy 和通用 `.agents/skills`
-- **干净打包**：自动排除 README、测试、CI、缓存等仓库文件
-- **自动化质量门禁**：Python 单元测试与 GitHub Actions
+- 把重复工作沉淀成可复用 Skill
+- 根据真实工作案例设计稳定流程
+- 创建 `SKILL.md`、参考资料、模板和辅助脚本
+- 审核并改进已有 Skill
+- 检查 Skill 的规范性、安全性和跨产品兼容性
+- 将 Skill 安装到当前 Agent 产品支持的位置
 
-## 兼容性
+## 30 秒开始使用
 
-| 产品 | 通用 Skill 核心 | 用户级默认目录 | 项目级默认目录 | 说明 |
-|---|---|---|---|---|
-| Agent Skills 通用 | 原生 | `~/.agents/skills` | `.agents/skills` | 最小公约数 |
-| Codex | 支持开放规范 | `${CODEX_HOME:-~/.codex}/skills` | `.agents/skills` | 可选 `agents/openai.yaml` |
-| Claude Code | 原生 | `~/.claude/skills` | `.claude/skills` | 支持额外调用控制字段 |
-| OpenCode | 原生 | `~/.config/opencode/skills` | `.opencode/skills` | 也发现 `.claude/skills` 和 `.agents/skills` |
-| OpenClaw | 原生 | `~/.openclaw/skills` | `skills` | 也支持 `.agents/skills` |
-| WorkBuddy / CodeBuddy | 原生 | `~/.workbuddy/skills` | `.codebuddy/skills` | 可通过界面导入技能包 |
+### 第一步：让 Agent 安装
 
-不同产品可能扩展额外 frontmatter。默认验证器允许并提示这些字段；`--strict` 模式只接受开放规范字段。详细说明见 [`references/compatibility.md`](references/compatibility.md)。
-
-## 快速开始
-
-### 1. 创建 Skill
-
-```bash
-python3 scripts/init_skill.py report-reviewer \
-  --path ./examples \
-  --description "Review business reports for missing evidence, unclear conclusions, and inconsistent metrics" \
-  --resources scripts,references,assets \
-  --license MIT \
-  --metadata author=NimaChu
-```
-
-默认不会生成任何产品专属配置。
-
-需要 Codex/OpenAI 展示元数据时显式添加适配器：
-
-```bash
-python3 scripts/init_skill.py report-reviewer \
-  --path ./examples \
-  --adapter openai \
-  --interface display_name="Report Reviewer" \
-  --interface short_description="Review reports for evidence and clarity"
-```
-
-### 2. 验证
-
-```bash
-python3 scripts/validate_skill.py ./examples/report-reviewer
-```
-
-严格检查开放规范字段：
-
-```bash
-python3 scripts/validate_skill.py ./examples/report-reviewer --strict
-```
-
-### 3. 打包
-
-```bash
-python3 scripts/package_skill.py ./examples/report-reviewer ./dist
-```
-
-输出：
+在 Codex、Claude Code、OpenCode、OpenClaw 或 WorkBuddy 中打开一个对话，把下面这段话发给 Agent：
 
 ```text
-dist/report-reviewer.skill.zip
+请安装并启用这个 Skill：
+https://github.com/NimaChu/nima-skill-creator
+
+请先识别你当前运行的 Agent 产品及其支持的 Skill 目录，阅读仓库中的 SKILL.md 和 references/compatibility.md，然后完成安装和验证。
+
+优先使用项目级安装，不要覆盖已有文件；如发现冲突、权限风险或不确定的安装位置，先向我说明。安装完成后告诉我如何触发和使用它。
 ```
 
-压缩包保留技能运行所需文件，同时排除 `.github/`、`tests/`、`README.md`、缓存和构建产物。
+Agent 会根据当前产品选择合适的安装方式。部分客户端可能需要重新加载项目、重启会话，或通过界面导入 Skill。
 
-### 4. 安装
+### 第二步：直接描述你想做的工作
 
-```bash
-# Claude Code 用户级
-python3 scripts/install_skill.py ./dist/report-reviewer.skill.zip --target claude-code
-
-# OpenCode 项目级
-python3 scripts/install_skill.py ./examples/report-reviewer \
-  --target opencode \
-  --scope project \
-  --project-root /path/to/repository
-
-# 查看目标路径，不写入
-python3 scripts/install_skill.py ./examples/report-reviewer --target openclaw --dry-run
-```
-
-使用 `--force` 覆盖已有安装，或使用 `--destination` 指定自定义根目录。
-
-## 仓库结构
+安装后，可以直接这样说：
 
 ```text
-nima-skill-creator/
-├── SKILL.md                       # Agent 可直接使用的 Skill Creator
-├── README.md                      # 项目展示与使用说明
-├── skill.json                     # 仓库/SkillHub 元数据
-├── agents/openai.yaml             # 可选 OpenAI/Codex 适配层
-├── scripts/
-│   ├── init_skill.py              # 创建 Skill
-│   ├── validate_skill.py          # 规范与安全检查
-│   ├── package_skill.py           # 干净、确定性打包
-│   ├── install_skill.py           # 跨产品安装
-│   └── generate_openai_yaml.py    # 生成 OpenAI 适配元数据
-├── references/                    # 按需加载的设计与兼容性资料
-├── assets/template-skill/         # 通用模板
-├── tests/                         # 工具链测试
-└── .github/workflows/ci.yml       # 持续集成
+请使用 nima-skill-creator，帮我把下面这项工作做成一个可复用 Skill：
+
+[描述你的工作、输入、输出和当前做法]
 ```
 
-## 设计原则
+Agent 会先补齐必要信息，再完成设计、创建和验证。
 
-### 开放核心，适配层在外
+## 常用对话示例
+
+### 创建一个新 Skill
 
 ```text
-Portable Agent Skill
-├── SKILL.md
-├── scripts/
-├── references/
-├── assets/
-└── agents/openai.yaml   # optional adapter
+请使用 nima-skill-creator，把“每周经营数据分析”做成一个 Skill。
+
+输入是 Excel 数据和本周业务背景，输出需要包括指标变化、异常原因、风险和下周建议。请先询问我缺少的信息，再创建并验证 Skill。
 ```
 
-Skill 的业务语义只维护一份。产品差异通过安装位置、可选元数据或显式扩展表达，避免为每个平台复制并逐渐漂移出多套 Skill。
+### 改进已有 Skill
 
-### 渐进式披露
-
-1. Agent 先看到 `name` 和 `description`
-2. 命中任务后加载 `SKILL.md`
-3. 仅在需要时读取 references、assets 或运行 scripts
-
-### 仓库与发布包分离
-
-GitHub 仓库需要 README、测试和 CI；运行时技能包不需要。`package_skill.py` 负责自动分离两者。
-
-## 开发与测试
-
-要求 Python 3.10+，无第三方运行依赖。
-
-```bash
-python3 -m unittest discover -s tests -v
-python3 scripts/validate_skill.py .
-python3 scripts/package_skill.py . ./dist
+```text
+请使用 nima-skill-creator 审核当前项目中的 Skill。
+重点检查触发条件是否准确、流程是否可执行、引用文件是否合理，以及能否兼容 Codex、Claude Code 和 OpenCode。发现问题后直接修改并验证。
 ```
 
-## 安全
+### 把资深员工的工作沉淀下来
 
-第三方 Skill 可能包含会被 Agent 执行的脚本和操作指令。安装前应审查：
+```text
+请使用 nima-skill-creator，通过渐进式提问了解我完成这项工作的真实步骤、判断标准、输入资料、常见异常和最终交付物，然后把它做成一个可复用 Skill。
+```
 
-- 脚本、网络请求和外部命令
-- 所需权限、环境变量和凭据
-- 引用文件与安装来源
-- 产品专属 metadata 或自动安装规则
+### 检查第三方 Skill
 
-本工具拒绝打包符号链接，并检查引用越界、Python 语法和压缩包路径穿越。
+```text
+请使用 nima-skill-creator 审核这个第三方 Skill。
+检查其中的脚本、外部命令、网络请求、权限要求、引用文件和产品专属配置，并告诉我是否适合安装。
+```
+
+## Agent 会怎样工作
+
+通常会经过以下过程：
+
+1. **理解工作**：确认输入、输出、触发方式和质量标准
+2. **选择结构**：判断需要流程、模板、检查清单、参考资料还是脚本
+3. **创建或改造**：生成最小且完整的 Skill 文件
+4. **验证结果**：检查规范、引用、脚本语法、安全问题和兼容性
+5. **交付说明**：告诉你创建了什么、如何触发、如何继续迭代
+
+如果需求已经足够清楚，Agent 应直接开始，不会为了走流程而重复提问。
+
+## 提供这些信息，效果会更好
+
+不需要写专业需求文档。尽量告诉 Agent：
+
+- 2～4 个真实的使用请求
+- 工作需要接收什么输入
+- 最终应该产出什么
+- 判断结果好坏的标准
+- 当前已有的模板、文件或脚本
+- 最容易出错或需要人工确认的地方
+- 希望在哪些 Agent 产品中使用
+
+## 最终会得到什么
+
+一个典型 Skill 可能包括：
+
+```text
+my-skill/
+├── SKILL.md          # Agent 的主要工作说明
+├── references/       # 按需读取的知识、规则和检查清单
+├── assets/           # 模板、示例或输出素材
+├── scripts/          # 需要稳定执行的辅助工具
+└── agents/           # 可选的产品适配信息
+```
+
+并不是每个 Skill 都需要全部目录。Nima Skill Creator 会优先创建最小、清晰、可维护的结构。
+
+## 兼容产品
+
+| 产品 | 支持情况 |
+|---|---|
+| Codex | 支持，可使用 OpenAI 展示适配信息 |
+| Claude Code | 支持原生 Skills 工作流 |
+| OpenCode | 支持项目级和用户级 Skills |
+| OpenClaw | 支持原生 Skills 与通用 Agent Skills |
+| WorkBuddy / CodeBuddy | 支持项目 Skill 或客户端导入 |
+| 其他 Agent Skills 工具 | 使用开放核心格式，通常可直接适配 |
+
+不同产品的目录、权限和刷新方式可能不同。普通用户无需手动处理这些差异，让 Agent 阅读 [`references/compatibility.md`](references/compatibility.md) 后执行即可。
+
+## 使用建议与安全
+
+- 第一次安装第三方 Skill 时，优先让 Agent 安装到当前项目
+- 让 Agent 在覆盖已有 Skill 前先展示差异
+- 不要把密钥、密码或生产凭据写进 Skill 文件
+- 安装包含脚本的 Skill 前，应让 Agent检查脚本和外部命令
+- Skill 创建完成后，用几个真实任务测试并继续改进
+
+## 给维护者和高级用户
+
+仓库内保留了初始化、验证、打包和安装工具，供 Agent 自动调用，也可用于 CI 或批量管理。普通用户不需要手动执行这些工具。
+
+- Skill 主体：[`SKILL.md`](SKILL.md)
+- 兼容性说明：[`references/compatibility.md`](references/compatibility.md)
+- 设计方法：[`references/design-patterns.md`](references/design-patterns.md)
+- 最佳实践：[`references/best-practices.md`](references/best-practices.md)
+- 安全说明：[`SECURITY.md`](SECURITY.md)
 
 ## License
 
