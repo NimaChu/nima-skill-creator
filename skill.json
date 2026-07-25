@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "format": "agent-skill-repository-metadata",
+  "name": "nima-skill-creator",
+  "displayName": "Nima Skill Creator",
+  "version": "2.0.0",
+  "description": "Create, audit, validate, package, and install portable Agent Skills.",
+  "entrypoint": "SKILL.md",
+  "license": "MIT",
+  "author": {
+    "name": "NimaChu",
+    "url": "https://github.com/NimaChu"
+  },
+  "standards": [
+    "Agent Skills"
+  ],
+  "targets": [
+    "codex",
+    "claude-code",
+    "opencode",
+    "openclaw",
+    "workbuddy",
+    "codebuddy"
+  ],
+  "tags": [
+    "agent-skills",
+    "skill-creator",
+    "codex",
+    "claude-code",
+    "opencode",
+    "openclaw",
+    "workbuddy",
+    "automation"
+  ]
+}

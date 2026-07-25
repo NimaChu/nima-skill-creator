@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate agents/openai.yaml for a skill folder."""
+"""Generate the optional Codex/OpenAI adapter at agents/openai.yaml."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ ALLOWED_INTERFACE_KEYS = {
     "brand_color",
     "default_prompt",
 }
-
 MAX_SHORT_DESCRIPTION = 64
 MIN_SHORT_DESCRIPTION = 25
 
@@ -31,11 +30,10 @@ def read_skill_name(skill_dir: Path) -> str:
     if not skill_md.exists():
         raise FileNotFoundError(f"SKILL.md not found in {skill_dir}")
     content = skill_md.read_text(encoding="utf-8")
-    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    match = re.match(r"^---\n(.*?)\n---", content.replace("\r\n", "\n"), re.DOTALL)
     if not match:
         raise ValueError("SKILL.md is missing valid YAML frontmatter.")
-    frontmatter = match.group(1)
-    name_match = re.search(r"^name:\s*(.+?)\s*$", frontmatter, re.MULTILINE)
+    name_match = re.search(r"^name:\s*(.+?)\s*$", match.group(1), re.MULTILINE)
     if not name_match:
         raise ValueError("Frontmatter is missing 'name'.")
     return name_match.group(1).strip().strip("\"'")
@@ -46,13 +44,13 @@ def format_display_name(skill_name: str) -> str:
 
 
 def generate_short_description(display_name: str) -> str:
-    value = f"Help with {display_name} workflows"
+    value = f"Create and improve {display_name} workflows"
     if len(value) > MAX_SHORT_DESCRIPTION:
-        value = f"{display_name} workflow helper"
+        value = f"Work with {display_name} workflows"
     if len(value) > MAX_SHORT_DESCRIPTION:
         value = value[:MAX_SHORT_DESCRIPTION].rstrip()
     if len(value) < MIN_SHORT_DESCRIPTION:
-        value = f"{value} tasks"
+        value = f"{value} and related tasks"
     return value[:MAX_SHORT_DESCRIPTION].rstrip()
 
 
@@ -68,6 +66,8 @@ def parse_overrides(items: list[str]) -> tuple[dict[str, str], list[str]]:
         if key not in ALLOWED_INTERFACE_KEYS:
             allowed = ", ".join(sorted(ALLOWED_INTERFACE_KEYS))
             raise ValueError(f"Unknown interface key '{key}'. Allowed: {allowed}")
+        if not value:
+            raise ValueError(f"Interface value for '{key}' must not be empty.")
         values[key] = value
         if key not in ("display_name", "short_description") and key not in order:
             order.append(key)
@@ -95,7 +95,6 @@ def write_openai_yaml(skill_dir: Path, skill_name: str, raw_overrides: list[str]
     for key in extra_order:
         lines.append(f"  {key}: {yaml_quote(overrides[key])}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"[OK] Created {path}")
     return path
 
 
@@ -103,12 +102,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate agents/openai.yaml for a skill.")
     parser.add_argument("skill_dir", help="Path to the skill directory")
     parser.add_argument("--name", help="Skill name override")
-    parser.add_argument(
-        "--interface",
-        action="append",
-        default=[],
-        help="Optional interface override in key=value format",
-    )
+    parser.add_argument("--interface", action="append", default=[], help="Interface override in key=value format")
     args = parser.parse_args()
 
     skill_dir = Path(args.skill_dir).expanduser().resolve()
@@ -118,10 +112,11 @@ def main() -> int:
 
     try:
         skill_name = args.name or read_skill_name(skill_dir)
-        write_openai_yaml(skill_dir, skill_name, args.interface)
+        path = write_openai_yaml(skill_dir, skill_name, args.interface)
     except Exception as exc:
         print(f"[ERROR] {exc}")
         return 1
+    print(f"[OK] Created {path}")
     return 0
 
 

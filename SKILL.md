@@ -1,120 +1,131 @@
 ---
 name: nima-skill-creator
-description: Create, refactor, and improve Codex-compatible skills with gated requirement discovery, reusable resource planning, executable scaffolding scripts, and validation. Use when building a new skill, tightening an existing SKILL.md, adding scripts/references/assets, or redesigning a skill around tool-wrapper, generator, reviewer, inversion, or pipeline patterns.
+description: Create, review, refactor, validate, package, and install portable Agent Skills. Use when a user wants to turn a repeatable workflow into a SKILL.md package, improve an existing skill, add scripts/references/assets, audit compatibility across Codex, Claude Code, OpenCode, OpenClaw, WorkBuddy/CodeBuddy, or prepare a clean distributable archive.
+license: MIT
+compatibility: Generated skills follow the Agent Skills open specification. Bundled tooling requires Python 3.10 or newer.
+metadata:
+  author: NimaChu
+  version: "2.0.0"
 ---
 
 # Nima Skill Creator
 
-Treat skill creation as workflow design, not just file formatting.
+Design skills as portable workflow packages, not product-specific prompt files.
 
-## Start Here
+## Operating principles
 
-1. Ground the skill in 2-4 concrete user requests before writing structure.
-2. Choose the simplest fitting pattern from [design-patterns.md](references/design-patterns.md).
-3. Create only the resources that remove repeated work: `scripts/`, `references/`, `assets/`, and optionally `agents/openai.yaml`.
-4. Keep `SKILL.md` procedural and concise. Move deep detail into `references/`.
-5. Validate before packaging.
+1. Start from concrete requests, expected outputs, and failure cases.
+2. Use the Agent Skills open specification as the core contract.
+3. Keep product-specific behavior in optional adapters or clearly marked extensions.
+4. Put deterministic operations in `scripts/`, detailed knowledge in `references/`, and reusable output material in `assets/`.
+5. Keep `SKILL.md` concise and link directly to supporting files.
+6. Validate, test, and package before claiming the skill is complete.
 
-Do not create the skill body until the trigger examples, outputs, and reusable resources are clear.
+## Workflow
 
-## Phase 1: Discovery Gate
+### 1. Audit or discover
 
-Run this phase first. Do not jump into implementation until the gaps below are resolved.
+For an existing skill, read every file that can affect execution before proposing changes. For a new skill, collect only the missing information:
 
-Capture:
-- What inputs the future skill must handle.
-- What outputs it must reliably produce.
-- What a user would actually say to trigger it.
-- Whether the skill is new or an update to an existing folder.
+- 2–4 representative user requests
+- required inputs and outputs
+- trigger wording and non-trigger examples
+- environment, tools, permissions, and safety boundaries
+- reusable scripts, references, templates, or examples
 
-Ask in Chinese when the user is exploring requirements. Keep it short and concrete. Use the prompts in [interaction-guide.md](references/interaction-guide.md) if the request is underspecified.
+Do not repeat questions the user has already answered. When the request is sufficiently concrete, summarize assumptions and proceed.
 
-Before moving on, summarize:
-- Primary job of the skill.
-- Trigger phrases or task shapes.
-- Constraints or quality bar.
-- Target directory.
+Use [interaction-guide.md](references/interaction-guide.md) for concise Chinese discovery prompts.
 
-## Phase 2: Pattern Selection
+### 2. Choose a design pattern
 
-Choose one primary pattern, then add a secondary pattern only if it removes ambiguity.
+Select the smallest useful combination from [design-patterns.md](references/design-patterns.md):
 
-- Use [design-patterns.md](references/design-patterns.md) to map the request to `tool-wrapper`, `generator`, `reviewer`, `inversion`, or `pipeline`.
-- Use `inversion` when the agent must collect structured context before acting.
-- Use `generator` when output shape must stay consistent.
-- Use `reviewer` when evaluation criteria should live in a checklist.
-- Use `pipeline` when steps must happen in order with explicit checkpoints.
-- Use `tool-wrapper` when the main value is on-demand domain guidance.
+- `tool-wrapper` for domain or tool guidance
+- `generator` for stable output shapes
+- `reviewer` for criteria-driven evaluation
+- `inversion` for requirement discovery before execution
+- `pipeline` for ordered stages and gates
 
-For most skill-creation requests, combine:
-- `inversion` for discovery
-- `generator` for scaffolding
-- `reviewer` for validation
-- `pipeline` for the overall sequence
+Use multiple patterns only when each controls a distinct failure mode.
 
-## Phase 3: Resource Planning
+### 3. Plan portable resources
 
-Translate the examples into reusable artifacts.
+Use [best-practices.md](references/best-practices.md) and [compatibility.md](references/compatibility.md).
 
-- Put deterministic automation in `scripts/`.
-- Put long-lived, load-on-demand guidance in `references/`.
-- Put templates or starter files in `assets/`.
+- Core: `SKILL.md`, plus optional `scripts/`, `references/`, and `assets/`
+- OpenAI/Codex presentation metadata: optional `agents/openai.yaml`
+- Product-specific frontmatter: add only when requested and document the portability impact
+- Repository files such as `README.md`, tests, CI, and contribution docs must remain outside the distributable skill package
 
-Use [best-practices.md](references/best-practices.md) to tighten naming, frontmatter, and progressive disclosure. Use [workflows.md](references/workflows.md) to shape staged skills with gates.
+### 4. Implement
 
-Avoid:
-- Auxiliary docs like `README.md`, `PROJECT.md`, or status reports inside the skill folder.
-- Repeating the same guidance in both `SKILL.md` and `references/`.
-- Deep reference chains.
-
-## Phase 4: Implementation
-
-When creating a new skill, initialize it with the provided scripts instead of hand-building the folder.
-
-### Create a new skill
+Create a portable skill without product adapters:
 
 ```bash
-python3 scripts/init_skill.py my-skill --path "${CODEX_HOME:-$HOME/.codex}/skills" --resources scripts,references
+python3 scripts/init_skill.py my-skill \
+  --path /path/to/skills \
+  --description "What the skill does and when to use it" \
+  --resources scripts,references,assets
 ```
 
-Optional:
+Add the optional OpenAI adapter only when needed:
 
 ```bash
-python3 scripts/init_skill.py my-skill --path /path/to/skills --resources scripts,references,assets --examples --interface display_name="My Skill" --interface short_description="Create or update My Skill tasks"
+python3 scripts/init_skill.py my-skill \
+  --path /path/to/skills \
+  --adapter openai \
+  --interface display_name="My Skill" \
+  --interface short_description="Create and improve My Skill workflows"
 ```
 
-### Validate a skill
+When updating an existing skill, make the minimum coherent set of changes and preserve product extensions that are intentional.
+
+### 5. Validate and test
 
 ```bash
 python3 scripts/validate_skill.py /path/to/skill
 ```
 
-### Package a skill
+Use `--strict` when the target accepts only open-standard frontmatter fields. Run bundled tests or scripts and report failures honestly.
+
+### 6. Package or install
+
+Create a clean archive that excludes repository-only files:
 
 ```bash
-python3 scripts/package_skill.py /path/to/skill
+python3 scripts/package_skill.py /path/to/skill ./dist
 ```
 
-## Phase 5: Review Gate
+Install a directory or archive:
 
-Before calling the skill done, verify:
-- Frontmatter has only `name` and `description`.
-- `description` explains both function and trigger scenarios.
-- `SKILL.md` tells the agent what to do, not what the project is.
-- Every optional directory exists for a reason.
-- Scripts are real, runnable programs.
-- References are one hop away from `SKILL.md`.
+```bash
+python3 scripts/install_skill.py ./dist/my-skill.skill.zip --target claude-code
+python3 scripts/install_skill.py ./my-skill --target opencode --scope project --project-root /path/to/repo
+```
 
-If the skill still feels vague, run another discovery pass instead of adding filler.
+Supported installer targets are documented in [compatibility.md](references/compatibility.md).
 
-## Output Shape
+## Review gate
 
-When responding to a user about a skill you are creating or improving, prefer this order:
+Before completion, verify:
 
-1. Discovery summary
-2. Chosen pattern and why
-3. Planned resources
-4. Files created or changed
-5. Validation result
+- directory name matches frontmatter `name`
+- `description` states both capability and trigger scenarios
+- optional standard fields are valid and product extensions are intentional
+- linked files exist and do not escape the skill directory
+- scripts parse and were executed when execution is material to correctness
+- no secrets, credentials, symlinks, generated caches, or repository-only files enter the package
+- installation instructions match the selected product and scope
 
-Use [output-patterns.md](references/output-patterns.md) when you need a compact deliverable format.
+## Response format
+
+Report:
+
+1. task and compatibility summary
+2. findings ordered by severity
+3. files created or changed
+4. commands and test results
+5. remaining product-specific limitations
+
+Use [output-patterns.md](references/output-patterns.md) for compact report shapes.

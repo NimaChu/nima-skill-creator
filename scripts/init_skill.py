@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Initialize a skill folder with a clean starter structure."""
+"""Initialize a portable Agent Skill with optional product adapters."""
 
 from __future__ import annotations
 
@@ -12,36 +12,33 @@ from generate_openai_yaml import write_openai_yaml
 
 MAX_SKILL_NAME_LENGTH = 64
 ALLOWED_RESOURCES = {"scripts", "references", "assets"}
+ALLOWED_ADAPTERS = {"openai"}
 
-SKILL_TEMPLATE = """---
-name: {skill_name}
-description: Explain what this skill does and when to use it. Include concrete trigger scenarios.
----
+SKILL_BODY_TEMPLATE = """# {skill_title}
 
-# {skill_title}
+Use this skill when the request matches the capability and trigger scenarios in the description.
 
-Start with the shortest set of instructions that lets another agent succeed.
+## Workflow
 
-## Quick Flow
+1. Confirm the concrete input, desired output, and constraints.
+2. Load only the supporting references needed for the current task.
+3. Run bundled scripts when deterministic execution is safer than rewriting logic.
+4. Validate the result against the requested output and any bundled checklist.
 
-1. Confirm the task shape.
-2. Load only the references needed for this request.
-3. Run any bundled scripts or apply the relevant assets.
-4. Validate the result before finishing.
+## Instructions
 
-## Main Procedure
+Replace this section with the real, imperative workflow for the skill.
 
-Replace this section with the real workflow for the skill.
+## Supporting resources
 
-## Resources
-
-- `references/...` for detailed guidance that should load on demand
-- `scripts/...` for deterministic automation
-- `assets/...` for templates or starter files
+- `references/` contains detailed guidance that should load on demand.
+- `scripts/` contains deterministic automation.
+- `assets/` contains templates and static resources used in outputs.
 """
 
-EXAMPLE_SCRIPT = """#!/usr/bin/env python3
-\"\"\"Example helper for {skill_name}. Replace or delete.\"\"\"
+EXAMPLE_SCRIPT = '''#!/usr/bin/env python3
+"""Example helper for {skill_name}. Replace or delete this file."""
+
 
 def main() -> None:
     print("Example helper for {skill_name}")
@@ -49,42 +46,80 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-"""
+'''
 
 EXAMPLE_REFERENCE = """# Reference Notes
 
-Replace this file with domain guidance that should only load on demand.
+Replace this file with focused domain guidance that should only load on demand.
 """
 
-EXAMPLE_ASSET = """Replace this placeholder with a real template, starter file, or asset."""
+EXAMPLE_ASSET = "Replace this placeholder with a real template or static resource.\n"
 
 
 def normalize_skill_name(value: str) -> str:
     value = value.strip().lower()
     value = re.sub(r"[^a-z0-9]+", "-", value)
-    value = re.sub(r"-{2,}", "-", value).strip("-")
-    return value
+    return re.sub(r"-{2,}", "-", value).strip("-")
 
 
 def title_case_skill_name(skill_name: str) -> str:
     return " ".join(part.capitalize() for part in skill_name.split("-") if part)
 
 
-def parse_resources(raw_resources: str) -> list[str]:
-    if not raw_resources:
+def parse_csv_values(raw_value: str, allowed: set[str], kind: str) -> list[str]:
+    if not raw_value:
         return []
-    resources = []
-    seen = set()
-    for item in raw_resources.split(","):
+    result: list[str] = []
+    for item in raw_value.split(","):
         item = item.strip()
-        if not item or item in seen:
+        if not item or item in result:
             continue
-        if item not in ALLOWED_RESOURCES:
-            allowed = ", ".join(sorted(ALLOWED_RESOURCES))
-            raise ValueError(f"Unknown resource '{item}'. Allowed values: {allowed}")
-        resources.append(item)
-        seen.add(item)
-    return resources
+        if item not in allowed:
+            choices = ", ".join(sorted(allowed))
+            raise ValueError(f"Unknown {kind} '{item}'. Allowed values: {choices}")
+        result.append(item)
+    return result
+
+
+def parse_metadata(items: list[str]) -> dict[str, str]:
+    metadata: dict[str, str] = {}
+    for item in items:
+        if "=" not in item:
+            raise ValueError(f"Invalid metadata '{item}'. Use key=value.")
+        key, value = item.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key or not value:
+            raise ValueError("Metadata keys and values must not be empty.")
+        metadata[key] = value
+    return metadata
+
+
+def yaml_scalar(value: str) -> str:
+    if re.fullmatch(r"[A-Za-z0-9._/+ -]+", value) and not value.startswith(("-", "?", ":")):
+        return value
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def render_skill_md(
+    skill_name: str,
+    description: str,
+    license_name: str | None,
+    compatibility: str | None,
+    metadata: dict[str, str],
+) -> str:
+    lines = ["---", f"name: {skill_name}", f"description: {yaml_scalar(description)}"]
+    if license_name:
+        lines.append(f"license: {yaml_scalar(license_name)}")
+    if compatibility:
+        lines.append(f"compatibility: {yaml_scalar(compatibility)}")
+    if metadata:
+        lines.append("metadata:")
+        for key, value in metadata.items():
+            lines.append(f"  {key}: {yaml_scalar(value)}")
+    lines.extend(["---", "", SKILL_BODY_TEMPLATE.format(skill_title=title_case_skill_name(skill_name))])
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def write_examples(skill_dir: Path, skill_name: str, resources: list[str]) -> None:
@@ -93,11 +128,9 @@ def write_examples(skill_dir: Path, skill_name: str, resources: list[str]) -> No
         path.write_text(EXAMPLE_SCRIPT.format(skill_name=skill_name), encoding="utf-8")
         path.chmod(0o755)
     if "references" in resources:
-        path = skill_dir / "references" / "reference.md"
-        path.write_text(EXAMPLE_REFERENCE, encoding="utf-8")
+        (skill_dir / "references" / "reference.md").write_text(EXAMPLE_REFERENCE, encoding="utf-8")
     if "assets" in resources:
-        path = skill_dir / "assets" / "placeholder.txt"
-        path.write_text(EXAMPLE_ASSET, encoding="utf-8")
+        (skill_dir / "assets" / "placeholder.txt").write_text(EXAMPLE_ASSET, encoding="utf-8")
 
 
 def init_skill(
@@ -105,13 +138,16 @@ def init_skill(
     output_dir: Path,
     resources: list[str],
     include_examples: bool,
+    adapters: list[str],
     interface_overrides: list[str],
+    description: str,
+    license_name: str | None,
+    compatibility: str | None,
+    metadata: dict[str, str],
 ) -> Path:
     normalized = normalize_skill_name(skill_name)
     if not normalized:
         raise ValueError("Skill name becomes empty after normalization.")
-    if normalized != skill_name:
-        print(f"[INFO] Normalized skill name to '{normalized}'")
     if len(normalized) > MAX_SKILL_NAME_LENGTH:
         raise ValueError(
             f"Skill name is too long ({len(normalized)}). Maximum is {MAX_SKILL_NAME_LENGTH}."
@@ -123,53 +159,69 @@ def init_skill(
 
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
-        SKILL_TEMPLATE.format(
-            skill_name=normalized,
-            skill_title=title_case_skill_name(normalized),
+        render_skill_md(
+            normalized,
+            description,
+            license_name,
+            compatibility,
+            metadata,
         ),
         encoding="utf-8",
     )
 
     for resource in resources:
         (skill_dir / resource).mkdir()
-
     if include_examples:
         write_examples(skill_dir, normalized, resources)
 
-    write_openai_yaml(skill_dir, normalized, interface_overrides)
+    if interface_overrides and "openai" not in adapters:
+        adapters.append("openai")
+    if "openai" in adapters:
+        write_openai_yaml(skill_dir, normalized, interface_overrides)
+
     return skill_dir
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Initialize a new skill folder.")
-    parser.add_argument("skill_name", help="Skill name, ideally lowercase hyphen-case")
-    parser.add_argument("--path", required=True, help="Parent directory for the skill folder")
+    parser = argparse.ArgumentParser(description="Initialize a portable Agent Skill directory.")
+    parser.add_argument("skill_name", help="Skill name, preferably lowercase hyphen-case")
+    parser.add_argument("--path", required=True, help="Parent directory for the skill")
+    parser.add_argument(
+        "--description",
+        default="Explain what this skill does and when to use it. Include concrete trigger scenarios.",
+    )
+    parser.add_argument("--license", dest="license_name", help="Optional SPDX license identifier or file reference")
+    parser.add_argument("--compatibility", help="Optional runtime or environment requirements")
+    parser.add_argument("--metadata", action="append", default=[], help="Metadata entry in key=value format")
     parser.add_argument(
         "--resources",
         default="",
-        help="Comma-separated resource directories to create: scripts,references,assets",
+        help="Comma-separated resource directories: scripts,references,assets",
     )
+    parser.add_argument("--examples", action="store_true", help="Create example files in selected resources")
     parser.add_argument(
-        "--examples",
-        action="store_true",
-        help="Create example files inside the selected resource directories",
+        "--adapter",
+        default="",
+        help="Comma-separated optional product adapters. Currently supported: openai",
     )
-    parser.add_argument(
-        "--interface",
-        action="append",
-        default=[],
-        help="Optional interface override in key=value format",
-    )
+    parser.add_argument("--interface", action="append", default=[], help="OpenAI adapter override in key=value format")
     args = parser.parse_args()
 
     try:
-        resources = parse_resources(args.resources)
+        resources = parse_csv_values(args.resources, ALLOWED_RESOURCES, "resource")
+        adapters = parse_csv_values(args.adapter, ALLOWED_ADAPTERS, "adapter")
+        metadata = parse_metadata(args.metadata)
         skill_dir = init_skill(
-            args.skill_name,
-            Path(args.path),
-            resources,
-            args.examples,
-            args.interface,
+            skill_name=args.skill_name,
+            output_dir=Path(args.path),
+            resources=resources,
+            include_examples=args.examples,
+            adapters=adapters,
+            interface_overrides=args.interface,
+            description=args.description,
+            license_name=args.license_name,
+            compatibility=args.compatibility,
+            metadata=metadata,
         )
     except Exception as exc:
         print(f"[ERROR] {exc}")

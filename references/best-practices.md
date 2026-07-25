@@ -2,41 +2,59 @@
 
 ## Frontmatter
 
-- Keep only `name` and `description`.
-- Use lowercase letters, digits, and hyphens in `name`.
-- Keep `name` under 64 characters.
-- Make `description` do the triggering work.
-- Put "when to use" information in `description`, not in a body section.
+- Require `name` and `description`.
+- Allow the open-standard optional fields: `license`, `compatibility`, `metadata`, and experimental `allowed-tools`.
+- Make the directory name match `name` exactly.
+- Write `description` as both capability and activation guidance.
+- Put environment requirements in `compatibility`, not in marketing prose.
+- Treat product-specific keys as extensions and document their portability impact.
 
-## SKILL.md Body
+## SKILL.md body
 
-- Write imperative instructions.
-- Start with the execution path, not project background.
-- Keep core guidance in the main file and move detail to `references/`.
-- Link directly to reference files from `SKILL.md`.
-- Stay concise enough that the whole file can load comfortably.
+- Use imperative, operational instructions.
+- Start with the execution path rather than project history.
+- Keep the main file under 500 lines when practical.
+- Link directly to supporting files; avoid multi-hop reference chains.
+- Include boundaries, failure handling, and final checks.
+- Do not assume product-specific tools or interpolation syntax unless compatibility is intentionally limited.
 
-## Resource Choice
+## Resource choice
 
-- Add `scripts/` when code would otherwise be rewritten repeatedly.
-- Add `references/` when detailed guidance is useful but not always needed.
-- Add `assets/` when templates or starter files improve output quality.
-- Skip any directory that does not remove real friction.
+- Add `scripts/` when deterministic code prevents repeated or error-prone reimplementation.
+- Add `references/` for detailed knowledge that should load only when needed.
+- Add `assets/` for templates, starter files, schemas, and static output resources.
+- Add `agents/openai.yaml` only as an optional OpenAI/Codex adapter.
+- Remove placeholder resources before release.
 
-## Anti-Patterns
+## Repository versus package
 
-- Do not ship placeholder prose disguised as `.py` scripts.
-- Do not add auxiliary documentation such as `README.md` inside the skill folder.
-- Do not duplicate the same rule in multiple files.
-- Do not mix discovery questions, implementation details, and marketing copy in one section.
-- Do not force bilingual text unless it helps a real user interaction step.
+Repository-only files include README, contribution guidance, CI, tests, docs, caches, and build output. Do not include them in the runtime archive unless the skill explicitly depends on them.
 
-## Quality Bar
+The distributable package should normally contain:
 
-Check these before finishing:
+- `SKILL.md`
+- license file
+- `scripts/`
+- `references/`
+- `assets/`
+- optional product adapters
+- optional machine-readable metadata such as `skill.json`
 
-- Triggering is specific enough to fire on the right requests.
-- The chosen pattern matches the real failure mode.
-- Files in `references/` are one hop from `SKILL.md`.
-- Scripts run successfully.
-- Packaging excludes junk like `.git` and `.DS_Store`.
+## Security
+
+- Treat third-party skills as untrusted code.
+- Reject symlinks and archive path traversal.
+- Inspect scripts, network calls, subprocesses, environment variables, and installers.
+- Never bundle secrets or credentials.
+- Prefer least privilege and explicit human approval for destructive or external actions.
+- Report what was statically checked versus actually executed.
+
+## Quality gate
+
+- Triggering is specific enough to avoid false positives.
+- Inputs, outputs, and non-goals are clear.
+- The selected pattern matches the main failure mode.
+- Every linked resource exists and stays inside the skill directory.
+- Scripts parse and relevant tests pass.
+- The package excludes repository-only material.
+- Compatibility claims distinguish tested support from expected support.
